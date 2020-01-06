@@ -10,7 +10,8 @@ cmap = plt.cm.viridis
 
 
 def parse_command():
-    data_names = ['nyudepthv2']
+    data_names = ['nyudepthv2', 'rgbd']
+    loss_names = ['l1', 'l2']
 
     from dataloaders.dataloader import MyDataloader
     modality_names = MyDataloader.modality_names
@@ -30,8 +31,41 @@ def parse_command():
     parser.add_argument('--gpu', default='0', type=str, metavar='N', help="gpu id")
     parser.set_defaults(cuda=True)
 
+    # training parameters
+    parser.add_argument('--epochs', default=15, type=int, metavar='N',
+                        help='number of total epochs to run (default: 15)')
+    parser.add_argument('-c', '--criterion', metavar='LOSS', default='l1', choices=loss_names,
+                        help='loss function: ' + ' | '.join(loss_names) + ' (default: l1)')
+    parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
+                        metavar='LR', help='initial learning rate (default 0.01)')
+    parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+                        help='momentum')
+    parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
+                        metavar='W', help='weight decay (default: 1e-4)')
+    parser.add_argument('--print-freq', '-p', default=10, type=int,
+                        metavar='N', help='print frequency (default: 10)')
+
     args = parser.parse_args()
     return args
+
+
+def save_checkpoint(state, is_best, epoch, output_directory):
+    checkpoint_filename = os.path.join(output_directory, 'checkpoint-' + str(epoch) + '.pth.tar')
+    torch.save(state, checkpoint_filename)
+    if is_best:
+        best_filename = os.path.join(output_directory, 'model_best.pth.tar')
+        shutil.copyfile(checkpoint_filename, best_filename)
+    if epoch > 0:
+        prev_checkpoint_filename = os.path.join(output_directory, 'checkpoint-' + str(epoch-1) + '.pth.tar')
+        if os.path.exists(prev_checkpoint_filename):
+            os.remove(prev_checkpoint_filename)
+
+
+def adjust_learning_rate(optimizer, epoch, lr_init):
+    """Sets the learning rate to the initial LR decayed by 10 every 5 epochs"""
+    lr = lr_init * (0.1 ** (epoch // 5))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 
 
 def colored_depthmap(depth, d_min=None, d_max=None):

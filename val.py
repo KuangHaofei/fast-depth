@@ -28,7 +28,10 @@ def main():
 
     # Data loading code
     print("=> creating data loaders...")
-    valdir = os.path.join('..', 'data', args.data, 'val')
+    # valdir = os.path.join('..', 'data', args.data, 'val')
+
+    data_dir = '/p300/dataset'
+    valdir = os.path.join(data_dir, 'data', args.data, 'val')
 
     if args.data == 'nyudepthv2':
         from dataloaders.nyu import NYUDataset
